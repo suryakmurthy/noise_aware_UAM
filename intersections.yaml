@@ -1,0 +1,330 @@
+Intersections:
+- identifier: WL
+  inbound: [WLBC, WLBC, WLHP, WLHP, WLDT, WLSV, WLSV, WLDT]
+  location: []
+  max_slots: 1000
+  outbound: [BCWL, HPWL, DTWL, HPWL, BCWL, SVWL, SVWL, DTWL]
+  radius: []
+- identifier: BC
+  inbound: [BCWL, BCPP, BCWL, BCSV, BCSV, BCPP]
+  location: []
+  max_slots: 1000
+  outbound: [WLBC, PPBC, WLBC, PPBC, SVBC, SVBC]
+  radius: []
+- identifier: PP
+  inbound: [PPBC, PPSA, PPSA, PPBC, PPSV, PPSV]
+  location: []
+  max_slots: 1000
+  outbound: [BCPP, SAPP, SAPP, SVPP, BCPP, SVPP]
+  radius: []
+- identifier: HP
+  inbound: [HPWL, HPDT, HPHL, HPHL, HPWL, HPDT]
+  location: []
+  max_slots: 1000
+  outbound: [WLHP, WLHP, DTHP, HLHP, HLHP, DTHP]
+  radius: []
+- identifier: DT
+  inbound: [DTHP, DTHL, DTMK, DTAA, DTSA, DTWL, DTSV, DTAA, DTMK, DTHL, DTHP, DTWL,
+    DTSV, DTSA]
+  location: []
+  max_slots: 1000
+  outbound: [HPDT, HLDT, MKDT, AADT, SADT, WLDT, SVDT, SADT, AADT, MKDT, HLDT, HPDT,
+    WLDT, SVDT]
+  radius: []
+- identifier: HL
+  inbound: [HLHP, HLHP, HLDT, HLMK, HLMK, HLDT]
+  location: []
+  max_slots: 1000
+  outbound: [HPHL, HPHL, DTHL, MKHL, MKHL, DTHL]
+  radius: []
+- identifier: MK
+  inbound: [MKHL, MKDT, MKAA, MKHL, MKAA, MKDT]
+  location: []
+  max_slots: 1000
+  outbound: [HLMK, HLMK, AAMK, DTMK, AAMK, DTMK]
+  radius: []
+- identifier: AA
+  inbound: [AAMK, AADT, AASA, AASA, AAMK, AADT]
+  location: []
+  max_slots: 1000
+  outbound: [MKAA, DTAA, SAAA, SAAA, MKAA, DTAA]
+  radius: []
+- identifier: SA
+  inbound: [SAAA, SAAA, SADT, SASV, SAPP, SAPP, SASV, SADT]
+  location: []
+  max_slots: 1000
+  outbound: [AASA, AASA, DTSA, SVSA, PPSA, PPSA, SVSA, DTSA]
+  radius: []
+- identifier: SV
+  inbound: [SVSA, SVWL, SVPP, SVBC, SVBC, SVWL, SVDT, SVSA, SVPP, SVDT]
+  location: []
+  max_slots: 1000
+  outbound: [SASV, WLSV, BCSV, BCSV, PPSV, WLSV, DTSV, SASV, PPSV, DTSV]
+  radius: []
+Routes:
+- identifier: WLBC
+  sectionWPs:
+  - id: WLBC
+    max_slots: 1000
+    wpLat: [30.30490148901416, 30.29386836257276]
+    wpLong: [-97.92189552708481, -97.83502769061589]
+  sections: [WLBC]
+- identifier: BCWL
+  sectionWPs:
+  - id: BCWL
+    max_slots: 1000
+    wpLat: [30.3040013758875, 30.2929757269807]
+    wpLong: [-97.92204851399524, -97.83518072234412]
+  sections: [BCWL]
+- identifier: PPBC
+  sectionWPs:
+  - id: PPBC
+    max_slots: 1000
+    wpLat: [30.29828195311632, 30.19228690347371]
+    wpLong: [-97.92645392342473, -97.8525232413887]
+  sections: [PPBC]
+- identifier: BCPP
+  sectionWPs:
+  - id: BCPP
+    max_slots: 1000
+    wpLat: [30.29781934256052, 30.19181622466039]
+    wpLong: [-97.92734318963606, -97.85341601053315]
+  sections: [BCPP]
+- identifier: WLHP
+  sectionWPs:
+  - id: WLHP
+    max_slots: 1000
+    wpLat: [30.29716616007198, 30.32998548854948]
+    wpLong: [-97.8162155929178, -97.76591615884796]
+  sections: [WLHP]
+- identifier: HPWL
+  sectionWPs:
+  - id: HPWL
+    max_slots: 1000
+    wpLat: [30.33070335232076, 30.29788513809278]
+    wpLong: [-97.76654229429428, -97.81684832320433]
+  sections: [HPWL]
+- identifier: HPDT
+  sectionWPs:
+  - id: HPDT
+    max_slots: 1000
+    wpLat: [30.326788405803, 30.27678648102555]
+    wpLong: [-97.7570487196139, -97.74920394373596]
+  sections: [HPDT]
+- identifier: DTHP
+  sectionWPs:
+  - id: DTHP
+    max_slots: 1000
+    wpLat: [30.32690608627211, 30.27690403006367]
+    wpLong: [-97.75601965653095, -97.74817168860267]
+  sections: [DTHP]
+- identifier: HPHL
+  sectionWPs:
+  - id: HPHL
+    max_slots: 1000
+    wpLat: [30.33638878670764, 30.3398407196028]
+    wpLong: [-97.7475388321716, -97.71479145820616]
+  sections: [HPHL]
+- identifier: HLHP
+  sectionWPs:
+  - id: HLHP
+    max_slots: 1000
+    wpLat: [30.33728737245001, 30.34073345991021]
+    wpLong: [-97.7476695703681, -97.71491975602437]
+  sections: [HLHP]
+- identifier: DTHL
+  sectionWPs:
+  - id: DTHL
+    max_slots: 1000
+    wpLat: [30.3331303885289, 30.27575621002946]
+    wpLong: [-97.70875388894926, -97.74216888595356]
+  sections: [DTHL]
+- identifier: HLDT
+  sectionWPs:
+  - id: HLDT
+    max_slots: 1000
+    wpLat: [30.33353709377629, 30.27616444424114]
+    wpLong: [-97.70968587526355, -97.74310459794975]
+  sections: [HLDT]
+- identifier: MKHL
+  sectionWPs:
+  - id: MKHL
+    max_slots: 1000
+    wpLat: [30.33378745606332, 30.28635697036554]
+    wpLong: [-97.69885711524864, -97.66706786618695]
+  sections: [MKHL]
+- identifier: HLMK
+  sectionWPs:
+  - id: HLMK
+    max_slots: 1000
+    wpLat: [30.33334393959251, 30.28590798152028]
+    wpLong: [-97.69976017002449, -97.66797994159843]
+  sections: [HLMK]
+- identifier: MKDT
+  sectionWPs:
+  - id: MKDT
+    max_slots: 1000
+    wpLat: [30.27756002592976, 30.2696617540756]
+    wpLong: [-97.6726858429146, -97.73710320737756]
+  sections: [MKDT]
+- identifier: AAMK
+  sectionWPs:
+  - id: AAMK
+    max_slots: 1000
+    wpLat: [30.2693648795942, 30.22335514346294]
+    wpLong: [-97.66261894778945, -97.66687960463105]
+  sections: [AAMK]
+- identifier: DTMK
+  sectionWPs:
+  - id: DTMK
+    max_slots: 1000
+    wpLat: [30.27666573893067, 30.26877635370522]
+    wpLong: [-97.67254035609083, -97.7369564967783]
+  sections: [DTMK]
+- identifier: MKAA
+  sectionWPs:
+  - id: MKAA
+    max_slots: 1000
+    wpLat: [30.26943512830211, 30.2234239812395]
+    wpLong: [-97.66365676543711, -97.66792261760199]
+  sections: [MKAA]
+- identifier: AADT
+  sectionWPs:
+  - id: AADT
+    max_slots: 1000
+    wpLat: [30.22032203620252, 30.26278160806178]
+    wpLong: [-97.67609038814639, -97.73880053617572]
+  sections: [AADT]
+- identifier: DTAA
+  sectionWPs:
+  - id: DTAA
+    max_slots: 1000
+    wpLat: [30.21961295113147, 30.26207076811774]
+    wpLong: [-97.67673395439027, -97.73943813941415]
+  sections: [DTAA]
+- identifier: AASA
+  sectionWPs:
+  - id: AASA
+    max_slots: 1000
+    wpLat: [30.21237925518327, 30.19250967049501]
+    wpLong: [-97.67837739095384, -97.75867654003328]
+  sections: [AASA]
+- identifier: SAAA
+  sectionWPs:
+  - id: SAAA
+    max_slots: 1000
+    wpLat: [30.21151790170565, 30.19164445956931]
+    wpLong: [-97.67809383463602, -97.7583899830729]
+  sections: [SAAA]
+- identifier: SADT
+  sectionWPs:
+  - id: SADT
+    max_slots: 1000
+    wpLat: [30.19826873055266, 30.25909234071317]
+    wpLong: [-97.76569768694316, -97.74916276936627]
+  sections: [SADT]
+- identifier: DTSA
+  sectionWPs:
+  - id: DTSA
+    max_slots: 1000
+    wpLat: [30.19846790284662, 30.25929693118033]
+    wpLong: [-97.76671078423854, -97.75018381297392]
+  sections: [DTSA]
+- identifier: SASV
+  sectionWPs:
+  - id: SASV
+    max_slots: 1000
+    wpLat: [30.19608862071893, 30.22867647473879]
+    wpLong: [-97.77574393946587, -97.81541265608801]
+  sections: [SASV]
+- identifier: SVSA
+  sectionWPs:
+  - id: SVSA
+    max_slots: 1000
+    wpLat: [30.19543306351842, 30.22801429209913]
+    wpLong: [-97.77645767367827, -97.81613812939959]
+  sections: [SVSA]
+- identifier: SAPP
+  sectionWPs:
+  - id: SAPP
+    max_slots: 1000
+    wpLat: [30.18934803252883, 30.1855080975152]
+    wpLong: [-97.77892912531989, -97.83725634846552]
+  sections: [SAPP]
+- identifier: PPSA
+  sectionWPs:
+  - id: PPSA
+    max_slots: 1000
+    wpLat: [30.18844822949697, 30.18460943153997]
+    wpLong: [-97.7788446767277, -97.83717541123384]
+  sections: [PPSA]
+- identifier: DTWL
+  sectionWPs:
+  - id: DTWL
+    max_slots: 1000
+    wpLat: [30.28948364604044, 30.2714344946577]
+    wpLong: [-97.8148364450855, -97.75691414817592]
+  sections: [DTWL]
+- identifier: WLDT
+  sectionWPs:
+  - id: WLDT
+    max_slots: 1000
+    wpLat: [30.28862955574146, 30.27059418330832]
+    wpLong: [-97.81519004020399, -97.75727245357191]
+  sections: [WLDT]
+- identifier: WLSV
+  sectionWPs:
+  - id: WLSV
+    max_slots: 1000
+    wpLat: [30.28307402058891, 30.24350674831599]
+    wpLong: [-97.82513812158231, -97.82406321339236]
+  sections: [WLSV]
+- identifier: SVWL
+  sectionWPs:
+  - id: SVWL
+    max_slots: 1000
+    wpLat: [30.28310076292757, 30.2435438899429]
+    wpLong: [-97.82408786537336, -97.82301350434665]
+  sections: [SVWL]
+- identifier: BCSV
+  sectionWPs:
+  - id: BCSV
+    max_slots: 1000
+    wpLat: [30.29997245533191, 30.23961163621684]
+    wpLong: [-97.92427589840493, -97.83193003068502]
+  sections: [BCSV]
+- identifier: SVPP
+  sectionWPs:
+  - id: SVPP
+    max_slots: 1000
+    wpLat: [30.19283153493172, 30.22641687771078]
+    wpLong: [-97.84409725209149, -97.82782948593137]
+  sections: [SVPP]
+- identifier: PPSV
+  sectionWPs:
+  - id: PPSV
+    max_slots: 1000
+    wpLat: [30.19249028877674, 30.22605950456768]
+    wpLong: [-97.84312088651937, -97.82686103628672]
+  sections: [PPSV]
+- identifier: SVBC
+  sectionWPs:
+  - id: SVBC
+    max_slots: 1000
+    wpLat: [30.24034070978099, 30.30068752377915]
+    wpLong: [-97.83129989445287, -97.92364572586293]
+  sections: [SVBC]
+- identifier: SVDT
+  sectionWPs:
+  - id: SVDT
+    max_slots: 1000
+    wpLat: [30.23824711613199, 30.26348101364464]
+    wpLong: [-97.81381842297108, -97.75635232101939]
+  sections: [SVDT]
+- identifier: DTSV
+  sectionWPs:
+  - id: DTSV
+    max_slots: 1000
+    wpLat: [30.23904324413628, 30.26428016784564]
+    wpLong: [-97.81430006369087, -97.75682806621136]
+  sections: [DTSV]

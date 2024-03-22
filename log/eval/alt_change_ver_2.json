@@ -1,0 +1,182 @@
+[
+    {
+        "scenario_num": 48,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 106,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 97,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 141,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 145,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 121,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 193,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 85,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 242,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 74,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 290,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 70,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 338,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 125,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 385,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 191,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 432,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 206,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 480,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 115,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 529,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 68,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 578,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 86,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 626,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 101,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 674,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 87,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 721,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 84,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 771,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 46,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 819,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 83,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 868,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 57,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 916,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 112,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    },
+    {
+        "scenario_num": 965,
+        "shield_total": 0,
+        "shield_total_intersection": 0,
+        "shield_total_route": 0,
+        "max_travel_time": 0,
+        "los": 91,
+        "scenario_name": "scenarios/austin_env_test.scn"
+    }
+]
