@@ -129,6 +129,8 @@ class Runner(object):
             shieldPenalty=[0.1],
             stepPenalty=[0],
             clearancePenalty=0.005,
+            gamma = 0.01,
+            alpha = 0,
             config_file=None,
             gui=False,
             non_coop_tag=0,
@@ -172,10 +174,10 @@ class Runner(object):
         self.noise_const_b = 103.4767
 
         ### ADD TO CONFIG LATER
-        self.alpha = 1
+        self.alpha = alpha
         self.beta = 1 - self.alpha
-        self.gamma = 0.001
-
+        self.gamma = gamma
+        print("Noise Reward Params: ", self.alpha, self.gamma)
         self.max_noise_increase = 0
         self.average_noise_increase = []
 

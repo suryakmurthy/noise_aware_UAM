@@ -5,13 +5,13 @@
 
 ## ** Driver parameters **
 #  -----------------
-Driver.run_name = 'aircraft_mod_alt_test_j'
-Driver.run_type = 'eval' # 'train' or 'eval'
-Driver.iterations= 3000
+Driver.run_name = 'aircraft_mod_alt_train_01_0'
+Driver.run_type = 'train' # 'train' or 'eval'
+Driver.iterations= 10000
 Driver.num_workers = 1 # of parallel runners
 Driver.scenario_file =  'scenarios/generated_scenarios_austin/austin_env_full.scn' # 'scenarios/generated_scenarios_2/aircraft_20/test_case_0.scn' 
 Driver.config_file = 'settings.cfg'
-Driver.gui = True
+Driver.gui = False
 Driver.weights_file = '/home/suryamurthy/UT_Autonomous_Group/vls_mod_alt/models/aircraft_mod_alt_train_001_1/best_model.h5' # used for evaluation
 
 
@@ -34,6 +34,12 @@ Driver.shieldPenalty = 1.0
 Driver.rewardLOS = -1
 Driver.stepPenalty = 0.002
 Driver.clearancePenalty = 0.005
+
+## Noise Reward Params
+Driver.gamma = 0.01
+Driver.alpha  = 0
+
+
 Driver.traffic_manager_active = True
 Driver.d2mav_active = True
 Driver.vls_active = False

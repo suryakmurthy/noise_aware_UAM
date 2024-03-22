@@ -56,6 +56,8 @@ class Driver:
             rewardLOS=-1,
             stepPenalty=0,
             clearancePenalty=0.005,
+            gamma = 0.001,
+            alpha = 0,
             gui=False,
             non_coop_tag=0,
             weights_file=None,
@@ -85,6 +87,8 @@ class Driver:
         self.rewardLOS = rewardLOS
         self.stepPenalty = stepPenalty
         self.clearancePenalty = clearancePenalty
+        self.gamma = gamma
+        self.alpha = alpha
         self.scenario_file = scenario_file
         self.config_file = config_file
         self.weights_file = weights_file
@@ -144,6 +148,8 @@ class Driver:
                 shieldPenalty=self.shieldPenalty,
                 stepPenalty=self.stepPenalty,
                 clearancePenalty=self.clearancePenalty,
+                gamma = self.gamma,
+                alpha = self.alpha,
                 gui=self.gui,
                 non_coop_tag=self.non_coop_tag,
                 traffic_manager_active=self.traffic_manager_active,
@@ -475,7 +481,7 @@ class Driver:
         print("Mean Travel Times: ", np.mean(max_travel_times))
         print("Mean number of NMACS: ", np.mean(total_LOS))
         print(metric_list)
-        with open('/home/suryamurthy/UT_Autonomous_Group/vls_mod_alt/log/eval/aircraft_mod_alt_train_001_1.json', 'w') as file:
+        with open('/home/suryamurthy/UT_Autonomous_Group/vls_mod_alt/log/eval/aircraft_mod_alt_train_01_0.json', 'w') as file:
             json.dump(metric_list, file, indent=4)
 
 
