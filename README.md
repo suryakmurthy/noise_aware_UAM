@@ -7,14 +7,12 @@ This is the github repository for the final project of ECE 381V: Reinforcement L
 
 ## 1. Install project dependencies
 
-1. Close and open a new terminal
-2. Navigate to noise_aware_UAM directory
+
+1. Navigate to noise_aware_UAM directory
     ```bash
     cd noise_aware_UAM
     ```
-3. Close and open a new terminal
-4. Naviagate to project directory (see step 1)
-5. Install bluesky
+2. Install bluesky
     ```python
     pip install -e .
     ```
@@ -50,4 +48,4 @@ For more information on the BlueSky Simulator, please see: https://github.com/TU
 
 # Acknowledgements:
 
-This project expands on the work of Marc Brittain
+This project uses the D2MAV-A model proposed by Brittain et. al.: https://arxiv.org/pdf/2003.08353
