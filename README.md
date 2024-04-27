@@ -10,7 +10,7 @@ This is the github repository for the final project of ECE 381V: Reinforcement L
 1. Close and open a new terminal
 2. Navigate to noise_aware_UAM directory
     ```bash
-    cd to/noise_aware_UAM
+    cd noise_aware_UAM
     ```
 3. Close and open a new terminal
 4. Naviagate to project directory (see step 1)
@@ -25,7 +25,7 @@ For more information on the BlueSky Simulator, please see: https://github.com/TU
 
 1. Navigate to noise_aware_UAM directory
     ```bash
-    cd to/noise_aware_UAM
+    cd noise_aware_UAM
     ```
 2. Try running main script
     ```python
@@ -39,11 +39,15 @@ For more information on the BlueSky Simulator, please see: https://github.com/TU
 
 2. Navigate to noise_aware_UAM directory
     ```bash
-    cd to/noise_aware_UAM
+    cd noise_aware_UAM
     ```
 3. Start BlueSky
     ```bash
     python BlueSky.py
     ```
-4. The GUI should open up. After the GUI has started, in Terminal 1, run step 3 of **Running Project** to start the simulation.
+4. The GUI should open up. After the GUI has started, in Terminal 1, run step 2 of **Running Project** to start the simulation.
 5. In the BlueSky GUI, select the **Nodes** tab on the lower-right side. Select a different simulation node to see the Austin Environment sim.
+
+# Acknowledgements:
+
+This project expands on the work of Marc Brittain
