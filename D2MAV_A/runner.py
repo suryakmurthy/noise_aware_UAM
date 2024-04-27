@@ -150,7 +150,7 @@ class Runner(object):
         self.scen_file = scenario_file
         self.working_directory = working_directory
         self.speeds = np.array(speeds)
-        self.altitudes = np.array([-100,0,100])
+        self.altitudes = np.array([-500,0,500])
         self.max_steps = max_steps
         self.simdt = simdt
         self.bsperf = bsperf
@@ -164,10 +164,10 @@ class Runner(object):
         self.speedChangePenalty = speedChangePenalty
 
         ## ALT Modification Params
-        self.altChangePenalty = 10 * speedChangePenalty
+        self.altChangePenalty = speedChangePenalty
         self.speed_change_counter = 0
         self.alt_change_counter = 0
-        self.min_alt = 800                    # 800
+        self.min_alt = 1000                    # 800
         self.max_alt = 3000                   # 2500 - 3000
         
         self.noise_const_a = -14.3088
@@ -177,7 +177,8 @@ class Runner(object):
         self.alpha = alpha
         self.beta = 1 - self.alpha
         self.gamma = gamma
-        print("Noise Reward Params: ", self.alpha, self.gamma)
+        self.safety_train = True
+        self.noise_train = False
         self.max_noise_increase = 0
         self.average_noise_increase = []
 
@@ -190,7 +191,7 @@ class Runner(object):
             self.ambient_noise_level = json.load(file)
 
         self.rewardLOS = rewardLOS
-        self.shieldPenalty = shieldPenalty # add [0] if testing
+        self.shieldPenalty = shieldPenalty #[0] # add [0] if testing
         self.stepPenalty = stepPenalty
         self.clearancePenalty = clearancePenalty
         self.gui = gui
@@ -258,8 +259,6 @@ class Runner(object):
         self.halt_start = {}
         self.full_travel = {}
         self.travel_start = {}
-        print(self.nmac_distance)
-        print("Reward_params", self.shieldPenalty, self.rewardLOS)
 
         self.communication_radius = self.intruderThreshold
         
@@ -331,7 +330,7 @@ class Runner(object):
 
         ## Noise Params
         self.max_noise_increase = 0
-        self.average_noise_increase = []
+        self.average_noise_increase = {}
 
         ### VLS Objects ###
         self.agent_to_id ={}
@@ -357,7 +356,6 @@ class Runner(object):
         else:
             scenario_file = self.scen_file
         self.scen_file_temp = scenario_file
-        print("New Scenario: ", scenario_file)
         # Reset Traffic Manager
         self.create_traffic_manager()  # easier to just create a new one for now
         # TODO: Implement proper reset
@@ -365,7 +363,6 @@ class Runner(object):
         # self.traffic_manager.reset()
 
         # Starting the bluesky and sim
-        print("resetting")
         self.bs.stack.stack("IC " + self.working_directory + "/" + scenario_file)
         self.bs.stack.stack("FF")
         self.bs.sim.step()  # bs.sim.simt = 0.0 AFTER the call to bs.sim.step()
@@ -467,7 +464,6 @@ class Runner(object):
             # Pass collected requests to the Traffic Manager and process them
             for id_ in initial_requests:
                 formatted_request = self.vehicle_helpers[id_].format_request()  # tuple
-                #print("request_1: ", formatted_request)
                 self.traffic_manager.add_request(id_, formatted_request)
 
             if initial_requests:
@@ -536,11 +532,9 @@ class Runner(object):
                     continue
             speed_action = int(actions[ac_id]/3)
             alt_action = actions[ac_id]%3
-            # print("action_val: ", speed_action)
             speed = self.speeds[speed_action]
             # New Altitude Changes
             alt_change = self.altitudes[alt_action]
-            # print("Update Altitude: ", self.bs.traf.alt[self.bs.traf.id2idx(ac_id)])
             current_alt = self.meters_to_feet(self.bs.traf.alt[self.bs.traf.id2idx(ac_id)])
             new_alt = current_alt + alt_change
             if speed_action == 1:  # hold/maintain
@@ -551,121 +545,23 @@ class Runner(object):
                     )
                 )
             ### VLS CASES
-            if self.vls_active:
-                n_ac = self.bs.traf.lat.shape[0]
-                d = (
-                geo.kwikdist_matrix(
-                    np.repeat(self.bs.traf.lat, n_ac),
-                    np.repeat(self.bs.traf.lon, n_ac),
-                    np.tile(self.bs.traf.lat, n_ac),
-                    np.tile(self.bs.traf.lon, n_ac),
-                ).reshape(n_ac, n_ac)
-                * geo.nm)
-
-                nmac_flag = False
-                if ac_id in self.agent_to_id.keys():
-                    own_group = self.agent_to_id[ac_id]
-                    if self.vehicle_helpers[self.current_movement[own_group]].next_route_section != self.vehicle_helpers[ac_id].next_route_section and self.vehicle_helpers[self.current_movement[own_group]].current_route_section != self.vehicle_helpers[ac_id].next_route_section:
-                        # if d[i][j] - (self.simdt*self.speeds[0]) <= self.nmac_distance:
-                        #     self.vls_modifications_halt.append(ac_id)
-                        #     self.action_override.append(ac_id)
-                        #     self.shield_counter += 1
-                        #     # print("Halting Vehicle on Different next route section")
-                        # else:
-                        # Steps: Check distance and direction of other agents in the group
-                        # If this agent is the closest
-                        # Overwrite the other agents (that aren't in that direction)
-                        # Don't Slow down that agent
-                        min_distance = np.inf
-                        min_id = None
-                        for other_id in self.id_to_group[own_group]:
-                            other_idx = self.bs.traf.id2idx(other_id.vehicle_ID)
-                            other_lat = self.bs.traf.lat[other_idx]
-                            other_lon = self.bs.traf.lon[other_idx]
-                            other_hdg = self.bs.traf.lon[other_idx]
-                            intersection_name = self.group_to_i_r[own_group]
-                            if intersection_name not in self.traffic_manager.intersections.keys():
-                                for key_val_1 in self.id_to_group.keys():
-                                    print(key_val_1, [element.vehicle_ID for element in self.id_to_group[key_val_1]], self.group_to_i_r[key_val_1])
-                            direction, distance = self.distance_and_direction(other_lat, other_lon, other_hdg, intersection_name)
-                            if direction == 1:
-                                if distance < min_distance:
-                                    min_distance = distance
-                                    min_id = other_id.vehicle_ID
-                        if ac_id != min_id and speed != self.speeds[0]:
-                            speed = self.speeds[0]
-                            self.shield_counter += 1
-                            self.shield_counter_intersect += 1
-                            self.vls_modifications_slow.append(ac_id)
-                    else:
-                        for other_id in self.id_to_group[own_group]:
-                            if other_id.current_route_section != self.vehicle_helpers[ac_id].current_route_section:
-                                continue
-                            actions[ac_id] = 1
-                            j_idx = self.bs.traf.id2idx(other_id.vehicle_ID)
-                            i_idx = self.bs.traf.id2idx(ac_id)
-                            spd = self.bs.traf.tas[i_idx]
-                            new_distance = d[i_idx][j_idx] - (self.simdt*spd)
-                            ## Comment this out
-                            if new_distance < self.nmac_distance and i_idx != j_idx:
-                                nmac_flag = True
-                                if self.bs.traf.distflown[i_idx] < self.bs.traf.distflown[j_idx]:
-                                    if other_id in speed_dict.keys() and (speed_dict[other_id] == speed[0]):
-                                        speed_dict[other_id] = int(
-                                            np.round(
-                                                (self.bs.traf.cas[self.bs.traf.id2idx(ac_id)] / geo.nm) * 3600
-                                            )
-                                        )
-                                        # self.shield_counter += 1
-                                        # self.shield_counter_route += 1
-                                    else:
-                                        speed = self.speeds[0]
-                                        self.shield_counter += 1
-                                        self.shield_counter_route += 1
-                                        self.vls_modifications_slow.append(ac_id)
-                                else:
-                                    if other_id in speed_dict.keys() and (speed_dict[other_id] == speed[2]):
-                                        speed_dict[other_id] = int(
-                                            np.round(
-                                                (self.bs.traf.cas[self.bs.traf.id2idx(ac_id)] / geo.nm) * 3600
-                                            )
-                                        )
-                                        actions[ac_id] = 1
-                                        # self.shield_counter += 1
-                                        # self.shield_counter_route += 1
-                                    else:
-                                        speed = self.speeds[2]
-                                        self.shield_counter += 1
-                                        self.shield_counter_route += 1
-                                        self.vls_modifications_slow.append(ac_id)
-                                        # print("Speeding Up: ", ac_id, other_id.vehicle_ID, d[i_idx][j_idx], self.bs.traf.distflown[i_idx], self.bs.traf.distflown[j_idx])
-                            # elif new_distance < self.nmac_distance and i != j:
-                            #     if speed != self.speeds[0]:
-                            #         if self.bs.traf.distflown[i] < self.bs.traf.distflown[j]:
-                            #             # print("Slow Down: ", ac_id, other_id.vehicle_ID , d[i][j], self.bs.traf.distflown[i], self.bs.traf.distflown[j], new_distance, self.nmac_distance, speed)
-                            #             speed = self.speeds[0]
-                            #             self.shield_counter += 1
-                            #             self.shield_counter_route += 1
-                            #             self.vls_modifications_slow.append(ac_id)
-                    if nmac_flag == False:
-                        if ac_id in self.halt_start:
-                            del self.halt_start[ac_id]
             if ac_id in self.action_override:
                 speed = 0
             else:
                 if speed == 0:
-                    # print("Error Flag")
                     speed = self.speeds[2]
                     
             speed_dict[ac_id] = speed
             alt_dict[ac_id] = new_alt
         for ac_id in speed_dict.keys():
             self.bs.stack.stack("{} SPD {}".format(ac_id, speed_dict[ac_id]))
-            # print("Checking Alt: ", ac_id, alt_dict[ac_id], self.min_alt, self.max_alt)
             if alt_dict[ac_id] >= self.min_alt and alt_dict[ac_id] <= self.max_alt: # min flight alt
-                # print("Modifying altitude: ", ac_id, alt_dict[ac_id])
                 self.bs.stack.stack("{} ALT {}".format(ac_id, alt_dict[ac_id]))
-        # time.sleep(10)
+            else:
+                if alt_dict[ac_id] < self.min_alt:
+                    self.bs.stack.stack("{} ALT {}".format(ac_id, self.min_alt))
+                if alt_dict[ac_id] > self.max_alt:
+                    self.bs.stack.stack("{} ALT {}".format(ac_id, self.max_alt))
         # updates the bluesky environment by 1 simulation timestep (1 seconds)
         self.bs.sim.step()
         self.step_counter += 1
@@ -738,12 +634,7 @@ class Runner(object):
                         ):
                             if id_ not in intersection.illegal:
                                 intersection.illegal.append(id_)
-                                # print(
-                                #     id_,
-                                #     "has entered",
-                                #     intersection.tower_ID,
-                                #     "illegally",
-                                # )
+
                                 # Update vehicle helper
                                 self.vehicle_helpers[id_].within_intersection = True
                                 self.vehicle_helpers[
@@ -788,12 +679,7 @@ class Runner(object):
                             self.vehicle_helpers[id_].within_intersection = False
                             self.vehicle_helpers[id_].current_intersection = None
                             self.vehicle_helpers[id_].enter_request_status = False
-                            # print(
-                            #     "Illegal vehicle",
-                            #     id_,
-                            #     "has exited",
-                            #     intersection.tower_ID,
-                            # )
+
                 else:
                     # Set vehicle helper to reflect that this vehicle is not in an intersection
                     self.vehicle_helpers[id_].within_intersection = False
@@ -816,7 +702,6 @@ class Runner(object):
                 if not id_ in self.vehicle_helpers.keys():
                     # Get and reformat the route name coming from Bluesky
                     route_name = self.bs.traf.ap.route[i].wpname[0][0:-1]
-                    # print("Checking Route Name: ", id_, self.bs.traf.ap.route[i].wpname[0], route_name)
                     self.vehicle_helpers[id_] = VehicleHelper(
                         id_, self.routes_loaded[route_name]
                     )
@@ -842,30 +727,25 @@ class Runner(object):
             # First process pending requests
             for id_ in self.pending_requests:
                 formatted_request = self.vehicle_helpers[id_].format_request()  # tuple
-                #print("request_1: ", formatted_request)
                 self.traffic_manager.add_request(id_, formatted_request)
             pending_request_response = self.traffic_manager.process_requests()
 
             # Second process new requests
             for id_ in new_requests:
                 formatted_request = self.vehicle_helpers[id_].format_request()
-                #print("request_1: ", formatted_request)
                 self.traffic_manager.add_request(id_, formatted_request)
             new_request_response = self.traffic_manager.process_requests()
 
             # Third process pending initial requests
             for id_ in self.pending_initial_requests:
                 formatted_request = self.vehicle_helpers[id_].format_request()
-                #print("request_1: ", formatted_request)
                 self.traffic_manager.add_request(id_, formatted_request)
-            # print("Updating Initial Requests")
             pending_initial_request_response = self.traffic_manager.process_requests()
 
             # Fourth process initial requests
             for id_ in initial_requests:
                 # Add takeoff shield
                 formatted_request = self.vehicle_helpers[id_].format_request()
-                #print("request_1: ", formatted_request)
                 self.traffic_manager.add_request(id_, formatted_request)
             initial_request_response = self.traffic_manager.process_requests()
 
@@ -887,7 +767,6 @@ class Runner(object):
                         self.exiting_vehicles.append(id_)
                         left_time = self.bs.sim.simt
                         self.full_travel[id_] = left_time - self.travel_start[id_]
-                        # print(f"Aircraft {id_} is exiting with exit time {self.full_travel}")
                 else:
                     self.vehicle_helpers[id_].enter_request_status = False
             # New in system responses
@@ -905,7 +784,6 @@ class Runner(object):
                         self.exiting_vehicles.append(id_)
                         left_time = self.bs.sim.simt
                         self.full_travel[id_] = left_time - self.travel_start[id_]
-                        # print(f"Aircraft {id_} is exiting with exit time {self.full_travel}")
                 else:
                     self.pending_requests.append(id_)
                     self.vehicle_helpers[id_].enter_request_status = False
@@ -927,14 +805,11 @@ class Runner(object):
                     # set the clearance to True. Optional fields are ALT, SPD
                     k_idx = self.bs.traf.id2idx(id_)
                     self.bs.traf.ap.setclrcmd(k_idx, True, self.min_alt, 30)
-                    # print(f"{id_} cleared for departure")
                 else:
-                    # print(f"{id_} denied departure")
                     self.vehicle_helpers[id_].enter_request_status = False
                     # self.bs.traf.ap.setclrcmd(k_idx, False)
             # Initial request responses
             for id_, response in initial_request_response.items():
-                # print("new initial request: ", id_, response)
                 k_idx = self.bs.traf.id2idx(id_)
                 collected_responses[id_] = [
                     response,
@@ -942,10 +817,8 @@ class Runner(object):
                         [self.bs.traf.lon[k_idx], self.bs.traf.lat[k_idx]]
                     ),
                 ]
-                # print(f"Checking {id_} for takeoff", response)
                 # Add Shield for takeoff
                 if response and not self.within_LOS(id_):
-                    # print(f"{id_} approved departure")
                     self.travel_start[id_] = self.bs.sim.simt
                     self.vehicle_helpers[id_].initial_request_granted = True
                     self.vehicle_helpers[id_].enter_request_status = True
@@ -953,7 +826,6 @@ class Runner(object):
                     self.vehicle_helpers[id_].enter_request_status = False
                     self.pending_initial_requests.append(id_)
                     k_idx = self.bs.traf.id2idx(id_)
-                    # print(f"{id_} denied departure")
                     self.bs.traf.ap.setclrcmd(k_idx, False)
 
         ### End of traffic manager code ###
@@ -984,287 +856,6 @@ class Runner(object):
         feet = meters * 3.28084
         return feet
 
-    def update_communication_groups(self):
-        n_ac = self.bs.traf.lat.shape[0]
-        d = (
-                geo.kwikdist_matrix(
-                    np.repeat(self.bs.traf.lat, n_ac),
-                    np.repeat(self.bs.traf.lon, n_ac),
-                    np.tile(self.bs.traf.lat, n_ac),
-                    np.tile(self.bs.traf.lon, n_ac),
-                ).reshape(n_ac, n_ac)
-                * geo.nm
-        )
-        coord_transform = self.transformer.transform(self.bs.traf.lon, self.bs.traf.lat)
-        geometries = MultiLineString(
-            [
-                [(coord_transform[0][i], coord_transform[1][i])]
-                + [
-                    self.transformer.transform(
-                        self.bs.traf.ap.route[i].wplon[j],
-                        self.bs.traf.ap.route[i].wplat[j],
-                    )
-                    for j in range(
-                        self.bs.traf.ap.route[i].iactwp,
-                        len(self.bs.traf.ap.route[i].wplon),
-                    )
-                ]
-                for i in range(self.bs.traf.lat.shape[0])
-            ]
-        )
-        # Do a Check to see if any vehicles in any groups have left the airspace
-        removal_list = []
-        for g in self.id_to_group.keys():
-            group_i = self.id_to_group[g].copy()
-            for v_left in group_i:
-                id_left = v_left.vehicle_ID
-                if id_left not in self.bs.traf.id:
-                    self.id_to_group[g].remove(v_left)
-                    if self.id_to_group[g] == []:
-                        removal_list.append(g)
-                    else:
-                        if self.current_movement[g] == id_left:
-                            self.current_movement[g] = self.vls[g].get_next_vehicle()
-        for r in removal_list:
-            del self.id_to_group[r]
-            del self.vls[r]
-        for i in range(self.bs.traf.lat.shape[0]):
-            id_i = self.bs.traf.id[i]
-            ## Potential Issue can occur if intersections are close to one another
-            ### COME BACK HERE
-            # if not self.check_in_intersection([self.bs.traf.lon[i], self.bs.traf.lat[i]]):
-            if id_i in self.agent_to_id:
-                group_i = self.agent_to_id[id_i]
-                if self.vehicle_helpers[id_i].current_route_section != self.group_to_i_r[group_i] and self.vehicle_helpers[id_i].current_intersection != self.group_to_i_r[group_i]:
-                    # print("Case 1")
-                    del self.agent_to_id[id_i]
-                    self.id_to_group[group_i].remove(self.vehicle_helpers[id_i])
-                    
-                    if self.id_to_group[group_i] != []:
-                        if self.current_movement[group_i] == id_i:
-                            self.current_movement[group_i] = self.vls[group_i].get_next_vehicle()
-                        else:
-                            self.vls[group_i].remove_vehicle(self.vehicle_helpers[id_i])
-                    else:
-                        del self.id_to_group[group_i]
-                        del self.current_movement[group_i]
-                    continue
-                ### New Removal Logic
-                ### Remove if closer to end of segment than all the other agents
-                idx = self.bs.traf.id2idx(id_i)
-                out_of_range = True
-                for a in self.id_to_group[group_i]:
-                    a_idx = self.bs.traf.id2idx(a.vehicle_ID)
-                    if a_idx != idx:
-                        ownship_obj = geometries.geoms[idx]
-                        other_obj = geometries.geoms[a_idx]
-                        dist = np.abs(ownship_obj.length - other_obj.length)
-                        d_2 = d[idx][a_idx]
-                        if dist <= self.communication_radius or d_2 <= self.communication_radius:
-                            out_of_range = False
-                if out_of_range == True:
-                    # print("removing due to out of range: ", id_i)
-                    del self.agent_to_id[id_i]
-                    self.id_to_group[group_i].remove(self.vehicle_helpers[id_i])
-                    if self.id_to_group[group_i] != []:
-                        if self.current_movement[group_i] == id_i:
-                            self.current_movement[group_i] = self.vls[group_i].get_next_vehicle()
-                        else:
-                            self.vls[group_i].remove_vehicle(self.vehicle_helpers[id_i])
-                    else:
-                        del self.id_to_group[group_i]
-                        del self.current_movement[group_i]
-                    continue
-
-            for j in range(self.bs.traf.lat.shape[0]):
-                if i != j:
-                    id_j = self.bs.traf.id[j]
-                    if self.vehicle_helpers[id_i].current_route_section != self.vehicle_helpers[id_j].current_route_section and self.vehicle_helpers[id_i].current_intersection != self.vehicle_helpers[id_j].current_intersection:
-                        continue
-                    if self.vehicle_helpers[id_i].current_route_section == None and self.vehicle_helpers[id_j].current_route_section == None and self.vehicle_helpers[id_i].current_intersection != self.vehicle_helpers[id_j].current_intersection:
-                        continue
-                    if self.vehicle_helpers[id_i].current_intersection == None and self.vehicle_helpers[id_j].current_intersection == None and self.vehicle_helpers[id_i].current_route_section != self.vehicle_helpers[id_j].current_route_section:
-                        continue
-                    if self.vehicle_helpers[id_i].current_intersection == None and self.vehicle_helpers[id_j].current_intersection == None and self.vehicle_helpers[id_i].current_route_section == None and self.vehicle_helpers[id_j].current_route_section == None:
-                        continue
-                    ownship_obj = geometries.geoms[i]
-                    other_obj = geometries.geoms[j]
-                    dist = np.abs(ownship_obj.length - other_obj.length)
-                    d_2 = d[i][j]
-                    # Check if the agents are in communication distance
-                    # p_flag = False
-                    # if id_i == 'PTWYR0':
-                    #     p_flag = True
-                    #     print("potential group: ", id_i, id_j, self.vehicle_helpers[id_i].current_route_section, self.vehicle_helpers[id_j].current_route_section, self.vehicle_helpers[id_i].current_intersection, self.vehicle_helpers[id_j].current_intersection, dist, d_2, self.communication_radius)
-                    if dist <= self.communication_radius or d_2 <= self.communication_radius:
-                        # Check if the agents belong to a communication group
-                        if id_i in self.agent_to_id.keys():
-                            # if p_flag:
-                            #     print("case 1")
-                            group_i = self.agent_to_id[id_i]
-                            if id_j in self.agent_to_id.keys():
-                                # if p_flag:
-                                #     print("case 1.2")
-                                group_j = self.agent_to_id[id_j]
-                                # If the agents do not belong to the same group. Merge the two groups
-                                # print(id_i, id_j, dist, self.communication_radius, self.vehicle_helpers[id_i].current_intersection, self.vehicle_helpers[id_j].current_intersection, self.group_to_i_r[group_i], self.group_to_i_r[group_j])
-                                ## CURRENT ERROR self.group_to_i_r[group_i] == self.group_to_i_r[group_j]
-                                if group_i != group_j:
-                                    # if p_flag:
-                                    #     print("case 1.3")
-                                    if self.group_to_i_r[group_i] == self.group_to_i_r[group_j]:
-                                        for agent in self.id_to_group[group_j]:
-                                            self.id_to_group[group_i].append(agent)
-                                            self.agent_to_id[agent.vehicle_ID] = group_i
-                                            self.vls[group_i].add_vehicle(agent)
-                                        del self.id_to_group[group_j]
-                                        del self.vls[group_j]
-                                    else:
-                                        if len(self.id_to_group[group_i]) >= len(self.id_to_group[group_j]):
-                                            for agent in self.id_to_group[group_j]:
-                                                if self.vehicle_helpers[id_i].current_route_section == self.vehicle_helpers[id_j].current_route_section:
-                                                    if agent.current_route_section == self.vehicle_helpers[id_i].current_route_section and agent.current_route_section == self.group_to_i_r[group_i]:
-                                                        self.id_to_group[group_i].append(agent)
-                                                        self.agent_to_id[agent.vehicle_ID] = group_i
-                                                        self.vls[group_i].add_vehicle(agent)
-                                                        self.id_to_group[group_j].remove(self.vehicle_helpers[agent.vehicle_ID])
-                                                        if self.id_to_group[group_j] != []:
-                                                            if self.current_movement[group_j] == agent.vehicle_ID:
-                                                                self.current_movement[group_j] = self.vls[group_j].get_next_vehicle()
-                                                            else:
-                                                                self.vls[group_j].remove_vehicle(agent)
-                                                        else:
-                                                            del self.id_to_group[group_j]
-                                                            del self.vls[group_j]
-                                                if self.vehicle_helpers[id_i].current_intersection == self.vehicle_helpers[id_j].current_intersection:
-                                                    if agent.current_intersection == self.vehicle_helpers[id_i].current_intersection and agent.current_intersection != None and self.vehicle_helpers[id_i].current_intersection != None and self.agent_to_id[agent.vehicle_ID] != group_i:
-                                                        self.id_to_group[group_i].append(agent)
-                                                        self.agent_to_id[agent.vehicle_ID] = group_i
-                                                        self.vls[group_i].add_vehicle(agent)
-                                                        self.id_to_group[group_j].remove(self.vehicle_helpers[agent.vehicle_ID])
-                                                        if self.id_to_group[group_j] != []:
-                                                            if self.current_movement[group_j] == agent.vehicle_ID:
-                                                                self.current_movement[group_j] = self.vls[group_j].get_next_vehicle()
-                                                            else:
-                                                                self.vls[group_j].remove_vehicle(agent)
-                                                        else:
-                                                            del self.id_to_group[group_j]
-                                                            del self.vls[group_j]
-                                            if self.group_to_i_r[group_i] != self.vehicle_helpers[id_i].current_intersection and self.vehicle_helpers[id_i].current_intersection != None:
-                                                self.group_to_i_r[group_i] = self.vehicle_helpers[id_i].current_intersection
-                                            # if p_flag:
-                                            #     print("case 1.7")
-                                            #     for i in self.id_to_group.keys():
-                                            #         print(i, [element.vehicle_ID for element in self.id_to_group[i]], self.group_to_i_r[group_i]) 
-                                            # print("deleting issue?: ", group_j)
-                                        else:
-                                            # if p_flag:
-                                            #     print("case 1.4")
-                                            # Error to fix tomorrow:
-                                            # One element in a group has switched route segments. How do we account for this before reconstructing the groups.
-                                            for agent in self.id_to_group[group_i]:
-                                                if self.vehicle_helpers[id_i].current_route_section == self.vehicle_helpers[id_j].current_route_section:
-                                                    if agent.current_route_section == self.vehicle_helpers[id_j].current_route_section and agent.current_route_section == self.group_to_i_r[group_j]:
-                                                        # if p_flag:
-                                                        #     print("case 1.4.1", agent.vehicle_ID, agent.current_route_section, self.group_to_i_r[group_j])
-                                                        self.id_to_group[group_j].append(agent)
-                                                        self.agent_to_id[agent.vehicle_ID] = group_j
-                                                        self.vls[group_j].add_vehicle(agent)
-                                                        self.id_to_group[group_i].remove(self.vehicle_helpers[agent.vehicle_ID])
-                                                        if self.id_to_group[group_i] != []:
-                                                            if self.current_movement[group_i] == agent.vehicle_ID:
-                                                                self.current_movement[group_i] = self.vls[group_i].get_next_vehicle()
-                                                            else:
-                                                                self.vls[group_i].remove_vehicle(agent)
-                                                        else:
-                                                            del self.id_to_group[group_i]
-                                                            del self.vls[group_i]
-                                                if self.vehicle_helpers[id_i].current_intersection == self.vehicle_helpers[id_j].current_intersection:
-                                                    if agent.current_intersection == self.vehicle_helpers[id_j].current_intersection and agent.current_intersection !=  None and self.vehicle_helpers[id_j].current_intersection != None and self.agent_to_id[agent.vehicle_ID] != group_j:
-                                                        # if p_flag:
-                                                        #     print("case 1.4.2", agent.vehicle_ID, id_j, agent.current_intersection, self.vehicle_helpers[id_j].current_intersection)
-                                                        self.id_to_group[group_j].append(agent)
-                                                        self.agent_to_id[agent.vehicle_ID] = group_j
-                                                        self.vls[group_j].add_vehicle(agent)
-                                                        self.id_to_group[group_i].remove(self.vehicle_helpers[agent.vehicle_ID])
-                                                        if self.id_to_group[group_i] != []:
-                                                            if self.current_movement[group_i] == agent.vehicle_ID:
-                                                                self.current_movement[group_i] = self.vls[group_i].get_next_vehicle()
-                                                            else:
-                                                                self.vls[group_i].remove_vehicle(agent)
-                                                        else:
-                                                            del self.id_to_group[group_i]
-                                                            del self.vls[group_i]
-                                            if self.group_to_i_r[group_j] != self.vehicle_helpers[id_j].current_intersection and self.vehicle_helpers[id_j].current_intersection != None:
-                                                self.group_to_i_r[group_j] = self.vehicle_helpers[id_j].current_intersection
-                                            # print("deleting issue 2?", group_i)
-                            # If j is not any group, add it to i's group
-                            else:
-                                self.agent_to_id[id_j] = group_i
-                                self.id_to_group[group_i].append(self.vehicle_helpers[id_j])
-                                self.vls[group_i].add_vehicle(self.vehicle_helpers[id_j])
-                                if self.vehicle_helpers[id_i].current_route_section != self.vehicle_helpers[id_j].current_route_section:
-                                    self.group_to_i_r[group_i] = self.vehicle_helpers[id_j].current_intersection
-                                # if p_flag:
-                                #     print("case 1.5")
-                                    # for i in self.id_to_group.keys():
-                                    #     print(i, [element.vehicle_ID for element in self.id_to_group[i]], self.group_to_i_r[i])
-                                
-                        # If neither are in a communication group, create a new group with the agents in it
-                        else:
-                            # if p_flag:
-                            #     print("case 2")
-                            if id_j in self.agent_to_id.keys():
-                                group_j = self.agent_to_id[id_j]
-                                if  self.vehicle_helpers[id_i].current_intersection == self.group_to_i_r[group_j] or self.vehicle_helpers[id_i].current_route_section == self.group_to_i_r[group_j]:
-                                    self.agent_to_id[id_i] = group_j
-                                    self.id_to_group[group_j].append(self.vehicle_helpers[id_i])
-                                    self.vls[group_j].add_vehicle(self.vehicle_helpers[id_i])
-                                else:
-                                    ## Remove from old group and add to new one
-                                    self.agent_to_id[id_j] = self.num_groups
-                                    self.id_to_group[group_j].remove(self.vehicle_helpers[id_j])
-                                    
-                                    if self.id_to_group[group_j] != []:
-                                        if self.current_movement[group_j] == id_j:
-                                            self.current_movement[group_j] = self.vls[group_j].get_next_vehicle()
-                                        else:
-                                            self.vls[group_j].remove_vehicle(self.vehicle_helpers[id_j])
-                                    else:
-                                        del self.id_to_group[group_j]
-                                        del self.current_movement[group_j]
-                                    # Make new Group
-                                    self.id_to_group[self.num_groups] = []
-                                    self.id_to_group[self.num_groups].append(self.vehicle_helpers[id_i])
-                                    self.id_to_group[self.num_groups].append(self.vehicle_helpers[id_j])
-                                    self.agent_to_id[id_i] = self.num_groups
-                                    self.agent_to_id[id_j] = self.num_groups
-                                    if self.num_groups not in self.vls.keys():
-                                        self.vls[self.num_groups] = VLS(self.id_to_group[self.num_groups])
-                                    if self.num_groups not in self.current_movement:
-                                        self.current_movement[self.num_groups] = self.vls[self.num_groups].get_next_vehicle()
-                                    if self.vehicle_helpers[id_i].current_intersection != None:
-                                        self.group_to_i_r[self.num_groups] = self.vehicle_helpers[id_i].current_intersection
-                                    else:
-                                        self.group_to_i_r[self.num_groups] = self.vehicle_helpers[id_i].current_route_section
-                                    self.num_groups += 1
-                            else:
-                                # self.group_to_i_r[group_i] == self.group_to_i_r[group_j]
-                                self.id_to_group[self.num_groups] = []
-                                self.id_to_group[self.num_groups].append(self.vehicle_helpers[id_i])
-                                self.id_to_group[self.num_groups].append(self.vehicle_helpers[id_j])
-                                self.agent_to_id[id_i] = self.num_groups
-                                self.agent_to_id[id_j] = self.num_groups
-                                if self.num_groups not in self.vls.keys():
-                                    self.vls[self.num_groups] = VLS(self.id_to_group[self.num_groups])
-                                if self.num_groups not in self.current_movement:
-                                    self.current_movement[self.num_groups] = self.vls[self.num_groups].get_next_vehicle()
-                                if self.vehicle_helpers[id_i].current_intersection != None:
-                                    self.group_to_i_r[self.num_groups] = self.vehicle_helpers[id_i].current_intersection
-                                else:
-                                    self.group_to_i_r[self.num_groups] = self.vehicle_helpers[id_i].current_route_section
-                                self.num_groups += 1
-
     def check_in_intersection(self, curr_gps):
         # Determine which vehicles are inside which intersections
         for intersection in self.traffic_manager.intersections.values():
@@ -1275,7 +866,6 @@ class Runner(object):
         return False
     
     def within_LOS(self, id_i):
-        # print("An Aircraft Wants to take off: ", id_i)
         n_ac = self.bs.traf.lat.shape[0]
         d = (
             geo.kwikdist_matrix(
@@ -1292,11 +882,9 @@ class Runner(object):
             if id_i == id_j:
                 continue
             if (not self.bs.traf.active[j]) or (self.vehicle_helpers[id_j].initial_request_granted == False):  # self.vehicle_helpers[id_j].initial_request_granted == False:
-                # print("Reason 2: ", id_j, self.bs.traf.active[j])
                 continue
             dist = d[i, j]
             if dist <= self.nmac_distance:
-                # print("HOLD IT: ", id_i, id_j, self.bs.traf.active[j], self.vehicle_helpers[id_j].initial_request_granted)
                 return True
         return False
                         
@@ -1411,9 +999,7 @@ class Runner(object):
         #         for i in range(traf.lat.shape[0])
         #     ]
         # )
-        if self.vls_active:
-            self.update_communication_groups()
-        avg_noise_vals = []
+        avg_noise_vals = {}
         noise_vals = {}
         for id_val in self.bs.traf.id:
             idx_val = self.bs.traf.id2idx(id_val)
@@ -1431,7 +1017,6 @@ class Runner(object):
                 if self.vehicle_helpers[id_val].current_intersection not in noise_vals.keys():
                     noise_vals[self.vehicle_helpers[id_val].current_intersection] = []
                 noise_vals[self.vehicle_helpers[id_val].current_intersection].append(10**(ac_noise / 10))
-        # print("Noise Values: ", noise_vals)
         for route_id in noise_vals.keys():
             if np.sum(noise_vals[route_id]) == 0:
                 total_noise_impact = 0
@@ -1442,14 +1027,13 @@ class Runner(object):
             if noise_increase < 0:
                 noise_increase = 0
             if noise_increase != 0:
-                avg_noise_vals.append(noise_increase)
+                if route_id not in self.average_noise_increase.keys():
+                    self.average_noise_increase[route_id] = []
+                self.average_noise_increase[route_id].append(noise_increase)
+                avg_noise_vals[route_id] = noise_increase
             if noise_increase >= self.max_noise_increase:
                 self.max_noise_increase = noise_increase
-        # print("Average Noise Values: ", avg_noise_vals)
-        if len(avg_noise_vals) > 0:
-            self.average_noise_increase.append(np.mean(avg_noise_vals))
-        # self.average_noise_increase.append(np.mean(avg_noise_vals))
-                
+        
 
 
         self.prev_id_copy = self.bs.traf.id.copy()
@@ -1491,18 +1075,6 @@ class Runner(object):
                     prev_action_own = a[id_]
 
             rew[id_] = 0
-            ### Start of VLS Code ###
-                           # Change this with further testing
-            # print(self.current_movement)
-            # self.vehicle_helpers[id_].enter_request_status = False
-            # print(self.id_to_group)
-            if self.vls_active:
-                if id_ in self.vls_modifications_halt:
-                    rew[id_] += self.rewardLOS
-                if id_ in self.vls_modifications_slow:
-                    # print("speed change penalty")
-                    rew[id_] -= self.shieldPenalty
-                    
 
 
             ## Hold the vehicles that do not move
@@ -1520,19 +1092,13 @@ class Runner(object):
                 if id_ in tm_response:
                     # try:
                     response, distance = tm_response[id_]  # 0 = denied, 1 = approved
-                    # here
-                    # except:
-                    #    response = tm_response[id_]
-                    #    distance = -1
+
                     response = int(response)
 
-                    # if response == 0:
-                    #    rew[id_] += -self.clearancePenalty
 
                     # hard action for when aircraft is too close to the boundary and SA did not slow down
                     # TODO: Store a flag of the vehicle that needs to be overwritten
                     if distance != -1 and distance < 250 and response == 0:
-                        # self.bs.stack.stack(f"SPD {id_} 0")
                         print("Clear Penalty")
                         rew[id_] += -self.clearancePenalty
                         self.action_override.append(id_)
@@ -1633,7 +1199,6 @@ class Runner(object):
                             self.traffic_manager.intersections[intersection].set_volume()
                 left_time = self.bs.sim.simt
                 self.full_travel[id_] = left_time - self.travel_start[id_]
-                # print(f"Aircraft {id_} is exiting with exit time {self.full_travel}")
                 
                 done[id_] = True
 
@@ -1651,7 +1216,10 @@ class Runner(object):
             closest_count = self.agent.max_agents
             intruder_state = None
             alt_own = self.bs.traf.alt[i]
+            alt_own_ft = self.meters_to_feet(alt_own)
             intruder_noise_vals = {} 
+            los_flag = False
+            intruder_flag = False
             for j in range(len(argsort[i])):
                 index = int(argsort[i][j])
 
@@ -1669,6 +1237,8 @@ class Runner(object):
                 intruder_obj = geometries.geoms[index]
                 dist = intruder_obj.length
                 alt_intruder = self.bs.traf.alt[j]
+                alt_intruder_ft = self.meters_to_feet(alt_intruder)
+                id_j = self.bs.traf.id[index]
                 dist_with_alt = np.sqrt((d[i, index]**2) + ((alt_own - alt_intruder)**2)) # Replace d[i, index] with this value
                 # intruder to be removed
                 if dist < self.dGoal and dist_with_alt > self.LOS:
@@ -1680,10 +1250,19 @@ class Runner(object):
                 ):  # TODO: This is a hyperparameter that needs to be moved to a config file
                     continue
                 if alt_intruder != 0:
-                    intruder_noise_vals[j] = self.a_0 +  (self.a_1 * math.log10(alt_intruder)) + (self.a_2 * ((math.log10(alt_intruder))**2))
+                    intruder_noise_vals[j] = self.a_0 +  (self.a_1 * math.log10(alt_intruder_ft)) + (self.a_2 * ((math.log10(alt_intruder_ft))**2))
                 else:
                     intruder_noise_vals[j] = 0
                 # if the ownship and intruder do not intersect and they are not on the same route
+                
+                origin_i = id_[1:3]
+                dest_i = id_[3:5]
+
+                origin_j = id_j[1:3]
+                dest_j = id_j[3:5]
+
+                
+
                 if not ownship_obj.intersects(intruder_obj):
                     continue
                 
@@ -1696,9 +1275,10 @@ class Runner(object):
                 # dist_own_inter = geo.kwikdist(traf.lat[i], traf.lon[i], ilat, ilon)  # nautical miles
 
                 if dist_with_alt < self.LOS and not reward_count:
-                    # print("LOS has occurred: ", id_, rew[id_])
-                    # rew[id_] += self.rewardLOS
+                    if self.safety_train:
+                        rew[id_] += self.rewardLOS
                     self.los_counter += 1
+                    los_flag = True
                     # if self.vehicle_helpers[id_].within_intersection == True:
                     curr_m = None
                     if id_ in self.agent_to_id.keys():
@@ -1710,17 +1290,17 @@ class Runner(object):
                     new_LOS_pairs.append((id_, id_j))
                     reward_count = True
                     info[id_] = 1
-                    # print("Id check: ", id_, a)
                     if id_ in a:
                         self.acInfo[id_]["NMAC"].append(1)
-                    # print("LOS has occurred 2: ", id_, rew[id_])
                 else:
                     self.acInfo[id_]["NMAC"].append(0)
 
-                # if not reward_count:
-                #     if dist_with_alt < self.maxRewardDistance and dist_with_alt > self.LOS:
-                #         rew[id_] += -self.rewardAlpha + self.rewardBeta * (dist_with_alt)
-                #         reward_count = True
+                if self.safety_train:
+                    if not reward_count:
+                        if dist_with_alt < self.maxRewardDistance and dist_with_alt > self.LOS:
+                            intruder_flag = True
+                            rew[id_] += -self.rewardAlpha + self.rewardBeta * (dist_with_alt)
+                            reward_count = True
 
                 ## Converting intruder lat/lon to UTM coords
                 xEast_int, yNorth_int = (
@@ -1802,12 +1382,10 @@ class Runner(object):
                 if current_intersection_name != None:
                     ambient_noise = self.ambient_noise_level[current_intersection_name]
             if alt_own > 0:
-                current_aircraft_noise = self.a_0 +  (self.a_1 * math.log10(alt_own)) + (self.a_2 * ((math.log10(alt_own))**2))
-                # current_aircraft_noise = (self.noise_const_a * math.log(alt_own)) + self.noise_const_b
+                current_aircraft_noise = self.a_0 +  (self.a_1 * math.log10(alt_own_ft)) + (self.a_2 * ((math.log10(alt_own_ft))**2))
             else:
                 current_aircraft_noise = 0
             ## 2: Group Event Noise
-            # inner_log_val = (10**(ambient_noise / 10))
             inner_log_val = 0 # (10**(current_aircraft_noise / 10))
             for single_noise_val in intruder_noise_vals.values():
                 inner_log_val += (10**(single_noise_val / 10))
@@ -1815,49 +1393,41 @@ class Runner(object):
                 total_noise_impact = 10 * math.log10(inner_log_val)
             else:
                 total_noise_impact = 0
-            # This is a test to see if this is a viable reward formulation
-            # total_noise_factored = current_aircraft_noise - total_noise_impact
 
             ## Old Version:
             total_noise_factored_own = ambient_noise - current_aircraft_noise
+            noise_increase_over_best_case = total_noise_factored_own 
             total_noise_factored_int = (ambient_noise - current_aircraft_noise - (10 * math.log10(10**((total_noise_impact - current_aircraft_noise)/10)+1)))
             # Ambient noise needs to be included
             # Total noise is around ~ -26per time step. Max negative reward per time step is 
-            total_noise_factored = (self.alpha * total_noise_factored_own) + (self.beta * total_noise_factored_int)
+            total_noise_factored = (self.alpha * noise_increase_over_best_case) + (self.beta * total_noise_factored_int)
             if total_noise_factored >= 0:
                 total_noise_factored = 0
-            # print("Total Noise Value: ", total_noise_factored, current_aircraft_noise, total_noise_impact, ambient_noise)
-            # 10 * math.log10(sum((10**(single_noise_val / 10)))) - ambient noise
-            # log((scaling factor 1) * pov_aircraft_noise + (scaling factor 2) * other_aircraft_noise(sum of all individual noise values)) - ambient noise
-            # 
-            # aircraft_noise
-            # single event noise
-            # ambient noise level, cumulative noise of the other aircraft
-            # R(pov_aircraft) = (scaling factor 1 * own_noise) - ((scaling factor 2) * other_aircraft_noise)) - ambient_noise
-            # POV Aircraft | Ambient Noise + Noise of Other Aircraft
+            
+            
             if total_noise_factored >= 0:
                 total_noise_factored = 0
-            # print("Reward Value: ", id_, self.gamma * total_noise_factored, self.altChangePenalty, self.speedChangePenalty, self.stepPenalty)
-            rew[id_] += (self.gamma * total_noise_factored)
+            if self.noise_train:
+                rew[id_] += (self.gamma * total_noise_factored)
 
             ### NOISE METRIC: Maximum Increase of single time-step Noise (over Ambient Value) over all Areas in the Environment
-            ### Combine Average and Maximum
             ### END OF NOISE REWARD IMPLEMENTATION ###
-
+            speed_change_flag = False
+            alt_change_flag = False
             if not init and not done[id_]:
                 if a is not None:
                     if id_ in a.keys():
                         a_spd_val = int(a[id_]/3)
                         a_alt_val = int(a[id_])%3
-                        # print("Check Reward: ", id_, rew[id_], a_spd_val, a_alt_val)
                         if a_spd_val == 0 or a_spd_val == 2:
                             rew[id_] += -self.speedChangePenalty
+                            speed_change_flag = True
                             self.speed_change_counter += 1
-                        if a_alt_val == 0 or a_alt_val == 2:
+                        if a_alt_val == 2:
                             rew[id_] += -self.altChangePenalty
+                            alt_change_flag = True
                             self.alt_change_counter += 1
-                        rew[id_] += -self.stepPenalty  ## step penalty
-                        # print("Check Reward 2: ", id_, rew[id_], a_spd_val, a_alt_val)
+                        rew[id_] += -self.stepPenalty * (((18 - self.bs.traf.tas[i])/18))## step penalty
         self.prev_LOS_pairs = new_LOS_pairs.copy()
         return state, rew, done, info
 
@@ -1865,13 +1435,10 @@ class Runner(object):
         """
         2022/11/1 modify the policy implementation and introduce the non-cooperative behaviors
         """
-        # print("Running one iteration")
         if self.agent.equipped:
             self.agent.model.set_weights(weights)
-        # self.agent.data = {}
         self.agent.reset()
         self.step_counter = 0
-        # self.shield_counter = 0
         if self.episode_done:
             obs = self.reset()
             self.nmacs = 0
@@ -1939,44 +1506,18 @@ class Runner(object):
                 self.agent.data["shield_events_r"] = self.shield_counter_route
                 self.agent.data["max_halting_time"] = self.max_halt_time
                 self.agent.data["max_noise_increase"] = self.max_noise_increase
-                # print("average_noise_increase: ", self.average_noise_increase)
-                self.agent.data["avg_noise_increase"] = np.mean(self.average_noise_increase)
+                self.agent.data["avg_noise_increase"] = self.average_noise_increase
                 self.agent.data["speed_change_counter"] = self.speed_change_counter
                 self.agent.data["alt_change_counter"] = self.alt_change_counter
                 self.agent.data["scenario_file"] = self.scen_file_temp
                 if len(self.full_travel) == 0:
                     self.agent.data["max_travel_time"] = 0
                 else:
-                    # print("Returning Full Travel: ", self.full_travel, max(self.full_travel.values()))
                     self.agent.data["max_travel_time"] = max(self.full_travel.values())
                 self.agent.data["full_travel_times"] = self.full_travel
                 data_ID = ray.put([self.agent.data, self.id])
 
                 return data_ID
-
-            # if self.step_counter >= self.max_steps:
-
-            #     self.last_obs = next_obs
-
-            #     # Need to process remaining entries in self.memory to self.data
-            #     for id_ in self.memory.keys():
-
-            #         # if the id_ has already been processed then skip it
-            #         if id_ in self.data.keys():
-            #             continue
-
-            #         self.process_memory(id_)
-
-            #     # convert to array from list of arrays
-            #     for model in self.data.keys():
-            #         for key in self.data[model].keys():
-            #             if type(self.data[model][key]) == list:
-            #                 self.data[model][key] = np.concatenate(self.data[model][key], axis=0)
-
-            #     self.data_ID = ray.put([self.data, self.id])
-            #     del self.data
-
-            #     return self.data_ID  # self.data, self.id
 
     def store_data(self, obs, action, rew, next_obs, term, term_type, policy, value):
         obs_updated = copy(next_obs)
@@ -1995,18 +1536,6 @@ class Runner(object):
                     group = np.array([x[0] for x in group])
                     self.nmacs += sum(group)
                 self.bs.stack.stack("DEL {}".format(ac_id))
-                # TODO: MIGHT NEED TO REMOVE VEHICLES HERE....
-                # if ac_id in self.exiting_vehicles: # TODO: NOT SUSTAINABLE. THIS WILL RESULT IN AIRSPACE VOLUME NEVER BEING REDUCED
-
-                # if self.traffic_manager_active:
-
-                # if self.traffic_manager_active:
-
-                #     try: # ?????
-                #         self.exiting_vehicles.remove(ac_id)
-
-                #     except:
-                #         import ipdb;ipdb.set_trace()
                 del obs_updated[ac_id]
 
         return obs_updated

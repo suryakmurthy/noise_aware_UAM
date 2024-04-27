@@ -9,6 +9,8 @@ import time
 import platform
 import json
 import numpy as np
+import datetime
+from torch.utils.tensorboard import SummaryWriter
 
 os.environ["PYTHONPATH"] = os.getcwd()
 
@@ -92,8 +94,8 @@ class Driver:
         self.scenario_file = scenario_file
         self.config_file = config_file
         self.weights_file = weights_file
-        print("weights: ", self.weights_file)
         self.gui = gui
+        # Speed and Altitude Changes
         self.action_dim = 9
         # Modified to account for altitude
         self.observation_dim = 8
@@ -159,6 +161,10 @@ class Driver:
             for i in range(self.num_workers)
         }
 
+        save_dir = "logs/tensorboard/{}".format(self.run_name)
+        os.makedirs(save_dir, exist_ok=True)
+        logger = SummaryWriter(save_dir)
+
         rewards = []
         total_nmacs = []
         total_LOS = []
@@ -173,7 +179,6 @@ class Driver:
             weights = self.agent.model.get_weights()
         else:
             weights = []
-        print("GUI: ", self.gui)
         runner_sims = [workers[agent_id].run_one_iteration.remote(weights) for agent_id in workers.keys()]
         scenario = 0
         metric_list = []
@@ -235,12 +240,10 @@ class Driver:
                 print(f"| Total NMACS:      {nmac}      |")
                 print(f"| Total Aircraft:   {total_ac[j]}  |")
                 roll_mean = np.mean(rewards[-150:])
-                # print(f"| Raw Reward: {total_reward[-1:]}  |")
                 print(f"| Rolling Mean Reward: {np.round(roll_mean, 1)}  |")
                 print(f"| Max Travel Time: {max_travel_time}  |")
                 print(f"| Number of LOS Events: {LOS_total}  |")
                 print(f"| Maximum Noise Increase: {max_noise_increase}  |")
-                print(f"| Average Noise Increase: {avg_noise_increase}  |")
                 print(f"| Number of Shield Events: {shield_total}  |")
                 print(f"| Number of Intersection Shield Events: {shield_total_intersect}  |")
                 print(f"| Number of Route Shield Events: {shield_total_route}  |")
@@ -266,6 +269,13 @@ class Driver:
                 max_travel_times.append(max_travel_time)
                 total_LOS.append(LOS_total)
                 iteration_record.append(i)
+                logger.add_scalar("train/reward_num", roll_mean, i)
+                logger.add_scalar("train/los_number", LOS_total, i)
+                logger.add_scalar("train/alt_changes", alt_change_counter, i)
+                logger.add_scalar("train/speed_changes", speed_change_counter, i)
+                logger.add_scalar("train/max_noise_increase", max_noise_increase, i)
+
+
 
             if mean_total_reward:
                 rewards.append(mean_total_reward)
@@ -295,41 +305,15 @@ class Driver:
                 if len(rewards) > 150:
                     if np.mean(rewards[-150:]) > best_reward:
                         best_reward = np.mean(rewards[-150:])
-                        self.agent.model.save_weights("{}/best_model.h5".format(self.path_models))
+                        self.agent.model.save_weights("{}/best_model_{}.h5".format(self.path_models, i))
 
                 self.agent.model.save_weights("{}/model.h5".format(self.path_models))
-
-            # for agent_id in workers_to_remove:
-            #     workers[agent_id] = Runner.remote(
-            #         agent_id,
-            #         self.agent_template,
-            #         scenario_file=self.scenario_file,
-            #         config_file=self.config_file,
-            #         working_directory=self.working_directory,
-            #         max_steps=self.max_steps,
-            #         simdt=self.simdt,
-            #         speeds=self.speeds,
-            #         LOS=self.LOS,
-            #         dGoal=self.dGoal,
-            #         maxRewardDistance=self.maxRewardDistance,
-            #         intruderThreshold=self.intruderThreshold,
-            #         rewardBeta=self.rewardBeta,
-            #         rewardAlpha=self.rewardAlpha,
-            #         speedChangePenalty=self.speedChangePenalty,
-            #         rewardLOS=self.rewardLOS,
-            #         stepPenalty=self.stepPenalty,
-            #         gui=self.gui,
-            #         non_coop_tag = self.non_coop_tag,
-            #     )
-
-            # if len(workers_to_remove) > 0:
-            #     time.sleep(5)
 
             runner_sims = [workers[agent_id].run_one_iteration.remote(weights) for agent_id in workers.keys()]
         print("Mean Travel Times: ", np.mean(max_travel_times))
         print("Mean number of NMACS: ", np.mean(total_LOS))
-        print(metric_list)
-        with open('/home/suryamurthy/UT_Autonomous_Group/vls_mod_alt/log/alt_mod/mod_alt_001_1.json', 'w') as file:
+        # print(metric_list)
+        with open('log/training/{}.json'.format(self.run_name), 'w') as file:
             json.dump(metric_list, file, indent=4)
             
     def evaluate(self):
@@ -411,6 +395,9 @@ class Driver:
                 max_halt_time = data[0]['max_halting_time']
                 max_noise_increase = data[0]['max_noise_increase']
                 avg_noise_increase = data[0]['avg_noise_increase']
+                avg_noise_dict = {}
+                for id_ in avg_noise_increase.keys():
+                    avg_noise_dict[id_] = np.mean(avg_noise_increase[id_])
                 max_travel_time = data[0]['max_travel_time']
                 full_travel_times_temp = list(data[0]['full_travel_times'].values())
                 scenario_file = data[0]['scenario_file']
@@ -430,7 +417,7 @@ class Driver:
                 print(f"| Max Travel Time: {max_travel_time}  |")
                 print(f"| Number of LOS Events: {LOS_total}  |")
                 print(f"| Maximum Noise Increase: {max_noise_increase}  |")
-                print(f"| Average Noise Increase: {avg_noise_increase}  |")
+                # print(f"| Average Noise Increase: {avg_noise_dict}  |")
                 print(f"| Number of Shield Events: {shield_total}  |")
                 print(f"| Number of Intersection Shield Events: {shield_total_intersect}  |")
                 print(f"| Number of Route Shield Events: {shield_total_route}  |")
@@ -481,13 +468,15 @@ class Driver:
         print("Mean Travel Times: ", np.mean(max_travel_times))
         print("Mean number of NMACS: ", np.mean(total_LOS))
         print(metric_list)
-        with open('/home/suryamurthy/UT_Autonomous_Group/vls_mod_alt/log/eval/aircraft_mod_alt_train_01_0.json', 'w') as file:
+        with open('log/test_models/{}.json'.format(self.run_name), 'w') as file:
             json.dump(metric_list, file, indent=4)
 
 
 ### Main code execution
-# Uncomment this for training
-# gin.parse_config_file("conf/config.gin")
+# Choose which config file you would like to use
+            
+# gin.parse_config_file("conf/config_safe_noise.gin")
+# gin.parse_config_file("conf/config_noise.gin")
 gin.parse_config_file("conf/config_demo.gin")
 
 if args.cluster:

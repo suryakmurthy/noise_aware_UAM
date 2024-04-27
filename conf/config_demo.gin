@@ -1,19 +1,18 @@
-## Configuration file
+## Configuration file used for simulation Demo
 
 
 #  ---------------------------------------------------------------
 
 ## ** Driver parameters **
 #  -----------------
-Driver.run_name = 'aircraft_mod_alt_train_01_0'
-Driver.run_type = 'train' # 'train' or 'eval'
-Driver.iterations= 10000
+Driver.run_name = 'test_noise_aware_model'
+Driver.run_type = 'eval' # 'train' or 'eval'
+Driver.iterations= 1000
 Driver.num_workers = 1 # of parallel runners
-Driver.scenario_file =  'scenarios/generated_scenarios_austin/austin_env_full.scn' # 'scenarios/generated_scenarios_2/aircraft_20/test_case_0.scn' 
+Driver.scenario_file =  'scenarios/generated_scenarios_austin/austin_env_108_aircraft.scn'
 Driver.config_file = 'settings.cfg'
-Driver.gui = False
-Driver.weights_file = '/home/suryamurthy/UT_Autonomous_Group/vls_mod_alt/models/aircraft_mod_alt_train_001_1/best_model.h5' # used for evaluation
-
+Driver.gui = True
+Driver.weights_file = 'models/train_noise_only/mod_noise_reward_type/aircraft_noise_aware_train_01/best_model.h5'
 
 ## Case Study parameters
 Driver.max_steps = 32 ## How many transitions to collect in the environment
@@ -27,17 +26,17 @@ Driver.maxRewardDistance = 1000 # intruders within 100 meters are considered for
 Driver.intruderThreshold = 6000 #  meters distance to consider intruders in ownship state, change to 50 (nm) for commercial
 
 ## Reward Function
-Driver.rewardBeta = 0.0001
+Driver.rewardBeta = 0.001
 Driver.rewardAlpha = 0.1
 Driver.speedChangePenalty = 0.0001
 Driver.shieldPenalty = 1.0
 Driver.rewardLOS = -1
 Driver.stepPenalty = 0.002
-Driver.clearancePenalty = 0.005
+Driver.clearancePenalty = 0.001
 
 ## Noise Reward Params
-Driver.gamma = 0.01
-Driver.alpha  = 0
+Driver.gamma = 0.00001
+Driver.alpha  = 1
 
 
 Driver.traffic_manager_active = True
